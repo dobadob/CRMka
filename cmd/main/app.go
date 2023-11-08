@@ -28,7 +28,7 @@ func main() {
 
 	cfg := config.GetConfig()
 
-	myHandlers := []handlers.Handler{
+	SetHandlers := []handlers.Handler{
 		company.NewHandler(logger),
 		employee.NewHandler(logger),
 		letter.NewHandler(logger),
@@ -36,9 +36,9 @@ func main() {
 		task.NewHandler(logger),
 	}
 
-	for _, v := range myHandlers {
+	for _, v := range SetHandlers {
+		logger.Infof("register handler %s", v.GetName())
 		v.Register(router)
-		logger.Infof("handler %s registered", v.GetName())
 	}
 
 	start(router, cfg)
