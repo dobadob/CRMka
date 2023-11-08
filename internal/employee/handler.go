@@ -15,10 +15,10 @@ const (
 
 type handler struct {
 	name   string
-	logger logging.Logger
+	logger *logging.Logger
 }
 
-func NewHandler(logger logging.Logger) handlers.Handler {
+func NewHandler(logger *logging.Logger) handlers.Handler {
 	return &handler{
 		name:   "employee",
 		logger: logger,
