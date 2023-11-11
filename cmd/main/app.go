@@ -4,11 +4,14 @@ import (
 	"CRMka/internal/company"
 	"CRMka/internal/config"
 	"CRMka/internal/employee"
+	"CRMka/internal/employee/db"
 	"CRMka/internal/handlers"
 	"CRMka/internal/letter"
 	"CRMka/internal/project"
 	"CRMka/internal/task"
+	"CRMka/pkg/client/mongodb"
 	"CRMka/pkg/logging"
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -22,11 +25,18 @@ import (
 
 func main() {
 	logger := logging.GetLogger()
-
 	logger.Info("create router")
 	router := httprouter.New()
 
 	cfg := config.GetConfig()
+
+	cfgMongo := cfg.MongoDB
+	mongoDBClient, err := mongodb.NewClient(context.Background(), cfgMongo.Host, cfgMongo.Port, cfgMongo.Username,
+		cfgMongo.Password, cfgMongo.Database, cfgMongo.AuthDB)
+	if err != nil {
+		panic(err)
+	}
+	storageEmplooye := db.NewStorage(mongoDBClient, "employees", logger)
 
 	SetHandlers := []handlers.Handler{
 		company.NewHandler(logger),

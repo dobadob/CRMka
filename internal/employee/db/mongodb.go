@@ -4,6 +4,7 @@ import (
 	"CRMka/internal/employee"
 	"CRMka/pkg/logging"
 	"context"
+	"errors"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -31,6 +32,19 @@ func (d *db) Create(ctx context.Context, employee employee.Employee) (string, er
 	return "", fmt.Errorf("dailed to convert objectid to hex. probably oid: %s", oid)
 }
 
+func (d *db) FindAll(ctx context.Context) (e []employee.Employee, err error) {
+	cursor, err := d.collection.Find(ctx, bson.M{})
+	if cursor.Err() != nil {
+		return e, fmt.Errorf("failed to find all employyes due to error: %v", err)
+	}
+
+	if err := cursor.All(ctx, &e); err != nil {
+		return e, fmt.Errorf("failed to read all documents from cursor. error: %v", err)
+	}
+
+	return e, nil
+}
+
 func (d *db) FindOne(ctx context.Context, id string) (e employee.Employee, err error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -41,7 +55,10 @@ func (d *db) FindOne(ctx context.Context, id string) (e employee.Employee, err e
 
 	result := d.collection.FindOne(ctx, filter)
 	if result.Err() != nil {
-		//TODO 404
+		if errors.Is(result.Err(), mongo.ErrNoDocuments) {
+			// TODO ErrEntityNotFound
+			return e, fmt.Errorf("not found")
+		}
 		return e, fmt.Errorf("failed to find one user by id: %s due to error: %v", id, err)
 	}
 	if err = result.Decode(&e); err != nil {
@@ -51,14 +68,64 @@ func (d *db) FindOne(ctx context.Context, id string) (e employee.Employee, err e
 	return e, nil
 }
 
-func (d *db) Update(ctx context.Context, employee employee.Employee) error {
-	//TODO implement me
-	panic("implement me")
+func (d *db) Update(ctx context.Context, e employee.Employee) error {
+	oid, err := primitive.ObjectIDFromHex(e.Id)
+	if err != nil {
+		return fmt.Errorf("failed to convert employee ID to ObjectID. ID=%s", e.Id)
+	}
+
+	filter := bson.M{"_id": oid}
+
+	employeeBytes, err := bson.Marshal(e)
+	if err != nil {
+		return fmt.Errorf("failed to marshal employee. error: %v", err)
+	}
+
+	var updateEmployeeObj bson.M
+	err = bson.Unmarshal(employeeBytes, updateEmployeeObj)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal employee bytes. error: %v", err)
+	}
+
+	delete(updateEmployeeObj, "_id")
+
+	update := bson.M{"$set": updateEmployeeObj}
+
+	result, err := d.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to execute update employee query. error: %v", err)
+	}
+
+	if result.MatchedCount == 0 {
+		// TODO ErrEntityNotFound
+		return fmt.Errorf("not found")
+	}
+
+	d.logger.Tracef("Matched %d document and Modified %d document", result.MatchedCount, result.ModifiedCount)
+
+	return nil
 }
 
 func (d *db) Delete(ctx context.Context, id string) error {
-	//TODO implement me
-	panic("implement me")
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("failed to convert employee ID to ObjectID. ID=%s", id)
+	}
+
+	filter := bson.M{"_id": oid}
+
+	result, err := d.collection.DeleteOne(ctx, filter)
+	if err != nil {
+		return fmt.Errorf("failed to execute query. error: %v", err)
+	}
+	if result.DeletedCount == 0 {
+		// TODO ErrEntityNotFound
+		return fmt.Errorf("not found")
+	}
+
+	d.logger.Tracef("Deleted %d document", result.DeletedCount)
+
+	return nil
 }
 
 func NewStorage(database *mongo.Database, collection string, logger *logging.Logger) employee.Storage {
