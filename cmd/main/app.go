@@ -35,7 +35,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	//storageEmplooye := db.NewStorage(mongoDBClient, "employees", logger)
+	//1 storageEmplooye := db.NewStorage(mongoDBClient, "employees", logger)
 
 	SetHandlers := []handlers.Handler{
 		company.NewHandler(logger),
