@@ -4,7 +4,6 @@ import (
 	"CRMka/internal/company"
 	"CRMka/internal/config"
 	"CRMka/internal/employee"
-	"CRMka/internal/employee/db"
 	"CRMka/internal/handlers"
 	"CRMka/internal/letter"
 	"CRMka/internal/project"
@@ -36,7 +35,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	storageEmplooye := db.NewStorage(mongoDBClient, "employees", logger)
+	//storageEmplooye := db.NewStorage(mongoDBClient, "employees", logger)
 
 	SetHandlers := []handlers.Handler{
 		company.NewHandler(logger),
