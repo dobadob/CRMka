@@ -1,6 +1,7 @@
 package db
 
 import (
+	"CRMka/internal/apperror"
 	"CRMka/internal/employee"
 	"CRMka/pkg/logging"
 	"context"
@@ -56,8 +57,7 @@ func (d *db) FindOne(ctx context.Context, id string) (e employee.Employee, err e
 	result := d.collection.FindOne(ctx, filter)
 	if result.Err() != nil {
 		if errors.Is(result.Err(), mongo.ErrNoDocuments) {
-			// TODO ErrEntityNotFound
-			return e, fmt.Errorf("not found")
+			return e, apperror.ErrNotFound
 		}
 		return e, fmt.Errorf("failed to find one user by id: %s due to error: %v", id, err)
 	}
@@ -97,8 +97,7 @@ func (d *db) Update(ctx context.Context, e employee.Employee) error {
 	}
 
 	if result.MatchedCount == 0 {
-		// TODO ErrEntityNotFound
-		return fmt.Errorf("not found")
+		return apperror.ErrNotFound
 	}
 
 	d.logger.Tracef("Matched %d document and Modified %d document", result.MatchedCount, result.ModifiedCount)
@@ -119,8 +118,7 @@ func (d *db) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("failed to execute query. error: %v", err)
 	}
 	if result.DeletedCount == 0 {
-		// TODO ErrEntityNotFound
-		return fmt.Errorf("not found")
+		return apperror.ErrNotFound
 	}
 
 	d.logger.Tracef("Deleted %d document", result.DeletedCount)

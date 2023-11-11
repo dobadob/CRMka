@@ -1,6 +1,7 @@
 package employee
 
 import (
+	"CRMka/internal/apperror"
 	"CRMka/internal/handlers"
 	"CRMka/pkg/logging"
 	"net/http"
@@ -30,34 +31,52 @@ func (h *handler) GetName() string {
 }
 
 func (h *handler) Register(router *httprouter.Router) {
-	router.GET(employeesURL, h.GetList)
-	router.POST(employeesURL, h.CreateEmployee)
-	router.GET(employeeURL, h.GetEmployeeByUUID)
-	router.PUT(employeeURL, h.UpdateEmployee)
-	router.PATCH(employeeURL, h.PartiallyUpdateEmployee)
-	router.DELETE(employeeURL, h.DeleteEmployee)
+	router.HandlerFunc(http.MethodGet, employeesURL, apperror.Middleware(h.GetList))
+	router.HandlerFunc(http.MethodPost, employeesURL, apperror.Middleware(h.CreateEmployee))
+	router.HandlerFunc(http.MethodGet, employeeURL, apperror.Middleware(h.GetEmployeeByUUID))
+	router.HandlerFunc(http.MethodPut, employeeURL, apperror.Middleware(h.UpdateEmployee))
+	router.HandlerFunc(http.MethodPatch, employeeURL, apperror.Middleware(h.PartiallyUpdateEmployee))
+	router.HandlerFunc(http.MethodDelete, employeeURL, apperror.Middleware(h.DeleteEmployee))
 }
 
-func (h *handler) GetList(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (h *handler) GetList(w http.ResponseWriter, r *http.Request) error {
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("this is list of employees"))
+
+	return nil
 }
 
-func (h *handler) CreateEmployee(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (h *handler) CreateEmployee(w http.ResponseWriter, r *http.Request) error {
+	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte("this is create employee"))
+
+	return nil
 }
 
-func (h *handler) GetEmployeeByUUID(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (h *handler) GetEmployeeByUUID(w http.ResponseWriter, r *http.Request) error {
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("this is employee by uuid"))
+
+	return nil
 }
 
-func (h *handler) UpdateEmployee(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (h *handler) UpdateEmployee(w http.ResponseWriter, r *http.Request) error {
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("this is update employee"))
+
+	return nil
 }
 
-func (h *handler) PartiallyUpdateEmployee(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (h *handler) PartiallyUpdateEmployee(w http.ResponseWriter, r *http.Request) error {
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("this is partially update employee"))
+
+	return nil
 }
 
-func (h *handler) DeleteEmployee(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (h *handler) DeleteEmployee(w http.ResponseWriter, r *http.Request) error {
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("this delete employee"))
+
+	return nil
 }
