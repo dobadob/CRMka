@@ -1,14 +1,13 @@
 package main
 
 import (
-	"CRMka/internal/company"
+	"CRMka/internal/adapters/db/mongodb"
 	"CRMka/internal/config"
-	"CRMka/internal/employee"
-	"CRMka/internal/handlers"
-	"CRMka/internal/letter"
-	"CRMka/internal/project"
-	"CRMka/internal/task"
+	v1 "CRMka/internal/controller/http/v1"
+	"CRMka/internal/domain/service"
+	mongodb2 "CRMka/pkg/client/mongodb"
 	"CRMka/pkg/logging"
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -20,39 +19,35 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+type Handler interface {
+	Register(router *httprouter.Router)
+	GetName() string
+}
+
 func main() {
 	logger := logging.GetLogger()
 	logger.Info("create router")
 	router := httprouter.New()
 
 	cfg := config.GetConfig()
-	/*
-		cfgMongo := cfg.MongoDB
-		mongoDBClient, err := mongodb.NewClient(context.Background(), cfgMongo.Host, cfgMongo.Port, cfgMongo.Username,
-			cfgMongo.Password, cfgMongo.Database, cfgMongo.AuthDB)
-		if err != nil {
-			panic(err)
-		}
-		storageEmplooye := db.NewStorage(mongoDBClient, "employees", logger)
-	*/
-	SetHandlers := []handlers.Handler{
-		company.NewHandler(logger),
-		employee.NewHandler(logger),
-		letter.NewHandler(logger),
-		project.NewHandler(logger),
-		task.NewHandler(logger),
+
+	cfgMongo := cfg.MongoDB
+	mongoDBClient, err := mongodb2.NewClient(context.Background(), cfgMongo.Host, cfgMongo.Port, cfgMongo.Username,
+		cfgMongo.Password, cfgMongo.Database, cfgMongo.AuthDB)
+	if err != nil {
+		panic(err)
 	}
 
-	for _, v := range SetHandlers {
-		logger.Infof("register handler %s", v.GetName())
-		v.Register(router)
-	}
+	employeeStorage := mongodb.NewStorage(mongoDBClient, "employees", logger)
+	employeeService := service.NewService(logger, employeeStorage)
+	logger.Infof("register handler employee handler")
+	employeeHandler := v1.NewHandler(logger, employeeService)
+	employeeHandler.Register(router)
 
-	start(router, cfg)
+	start(logger, router, cfg)
 }
 
-func start(router *httprouter.Router, cfg *config.Config) {
-	logger := logging.GetLogger()
+func start(logger *logging.Logger, router *httprouter.Router, cfg *config.Config) {
 	logger.Info("start application")
 
 	var listener net.Listener

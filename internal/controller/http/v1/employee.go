@@ -1,9 +1,12 @@
-package employee
+package v1
 
 import (
 	"CRMka/internal/apperror"
-	"CRMka/internal/handlers"
+	"CRMka/internal/controller/http/dto"
+	"CRMka/internal/domain/entity"
 	"CRMka/pkg/logging"
+	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -11,18 +14,28 @@ import (
 
 const (
 	employeesURL = "/employees"
-	employeeURL  = "/employees/:uuid"
+	employeeURL  = "/employees/:id"
 )
 
-type handler struct {
-	name   string
-	logger *logging.Logger
+type Service interface {
+	CreateEmployee(ctx context.Context, dto dto.CreateEmployeeDTO) (string, error)
+	GetAllEmployees(ctx context.Context) (e []entity.Employee, err error)
+	GetEmployeeByID(ctx context.Context, id string) (entity.Employee, error)
+	UpdateEmployee(ctx context.Context, employee entity.Employee) error
+	DeleteEmployeeByUUID(ctx context.Context, id string) error
 }
 
-func NewHandler(logger *logging.Logger) handlers.Handler {
+type handler struct {
+	name    string
+	logger  *logging.Logger
+	service Service
+}
+
+func NewHandler(l *logging.Logger, s Service) *handler {
 	return &handler{
-		name:   "employee",
-		logger: logger,
+		name:    "employee",
+		logger:  l,
+		service: s,
 	}
 }
 
@@ -31,17 +44,25 @@ func (h *handler) GetName() string {
 }
 
 func (h *handler) Register(router *httprouter.Router) {
-	router.HandlerFunc(http.MethodGet, employeesURL, apperror.Middleware(h.GetList))
+	router.HandlerFunc(http.MethodGet, employeesURL, apperror.Middleware(h.GetAllEmployees))
 	router.HandlerFunc(http.MethodPost, employeesURL, apperror.Middleware(h.CreateEmployee))
 	router.HandlerFunc(http.MethodGet, employeeURL, apperror.Middleware(h.GetEmployeeByUUID))
 	router.HandlerFunc(http.MethodPut, employeeURL, apperror.Middleware(h.UpdateEmployee))
-	router.HandlerFunc(http.MethodPatch, employeeURL, apperror.Middleware(h.PartiallyUpdateEmployee))
 	router.HandlerFunc(http.MethodDelete, employeeURL, apperror.Middleware(h.DeleteEmployee))
 }
 
-func (h *handler) GetList(w http.ResponseWriter, r *http.Request) error {
+func (h *handler) GetAllEmployees(w http.ResponseWriter, r *http.Request) error {
+	employees, err := h.service.GetAllEmployees(context.Background())
+	if err != nil {
+		return err
+	}
+	bytes, err := json.Marshal(employees)
+	if err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("this is list of employees"))
+	w.Write(bytes)
 
 	return nil
 }
@@ -55,7 +76,7 @@ func (h *handler) CreateEmployee(w http.ResponseWriter, r *http.Request) error {
 
 func (h *handler) GetEmployeeByUUID(w http.ResponseWriter, r *http.Request) error {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("this is employee by uuid"))
+	w.Write([]byte("this is employee by id"))
 
 	return nil
 }

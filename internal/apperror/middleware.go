@@ -20,7 +20,7 @@ func Middleware(h appHandler) http.HandlerFunc {
 					return
 				} /*else if errors.Is(err, NoAuthErr) {
 					w.WriteHeader(http.StatusUnauthorized)
-					w.Write(ErrNotFound.Marshal())
+					w.Write(NoAuthErr.Marshal())
 					return
 				} */
 				err = err.(*AppError)

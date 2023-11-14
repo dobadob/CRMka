@@ -1,8 +1,9 @@
-package db
+package mongodb
 
 import (
 	"CRMka/internal/apperror"
-	"CRMka/internal/employee"
+	"CRMka/internal/controller/http/dto"
+	"CRMka/internal/domain/entity"
 	"CRMka/pkg/logging"
 	"context"
 	"errors"
@@ -12,14 +13,21 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type db struct {
+type employeeStorage struct {
 	collection *mongo.Collection
 	logger     *logging.Logger
 }
 
-func (d *db) Create(ctx context.Context, employee employee.Employee) (string, error) {
+func NewStorage(database *mongo.Database, collection string, logger *logging.Logger) *employeeStorage {
+	return &employeeStorage{
+		collection: database.Collection(collection),
+		logger:     logger,
+	}
+}
+
+func (d *employeeStorage) Create(ctx context.Context, e dto.CreateEmployeeDTO) (string, error) {
 	d.logger.Debug("create employee")
-	result, err := d.collection.InsertOne(ctx, employee)
+	result, err := d.collection.InsertOne(ctx, e)
 	if err != nil {
 		return "", fmt.Errorf("failed to create employee due to error: %v", err)
 	}
@@ -29,11 +37,11 @@ func (d *db) Create(ctx context.Context, employee employee.Employee) (string, er
 	if ok {
 		return oid.Hex(), nil
 	}
-	d.logger.Trace(employee)
+	d.logger.Trace(e)
 	return "", fmt.Errorf("dailed to convert objectid to hex. probably oid: %s", oid)
 }
 
-func (d *db) FindAll(ctx context.Context) (e []employee.Employee, err error) {
+func (d *employeeStorage) GetAll(ctx context.Context) (e []entity.Employee, err error) {
 	cursor, err := d.collection.Find(ctx, bson.M{})
 	if cursor.Err() != nil {
 		return e, fmt.Errorf("failed to find all employyes due to error: %v", err)
@@ -46,7 +54,7 @@ func (d *db) FindAll(ctx context.Context) (e []employee.Employee, err error) {
 	return e, nil
 }
 
-func (d *db) FindOne(ctx context.Context, id string) (e employee.Employee, err error) {
+func (d *employeeStorage) GetOne(ctx context.Context, id string) (e entity.Employee, err error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return e, fmt.Errorf("filed to convert hex to objectid. hex: %s", id)
@@ -68,10 +76,10 @@ func (d *db) FindOne(ctx context.Context, id string) (e employee.Employee, err e
 	return e, nil
 }
 
-func (d *db) Update(ctx context.Context, e employee.Employee) error {
-	oid, err := primitive.ObjectIDFromHex(e.Id)
+func (d *employeeStorage) Update(ctx context.Context, e entity.Employee) error {
+	oid, err := primitive.ObjectIDFromHex(e.ID)
 	if err != nil {
-		return fmt.Errorf("failed to convert employee ID to ObjectID. ID=%s", e.Id)
+		return fmt.Errorf("failed to convert employee ID to ObjectID. ID=%s", e.ID)
 	}
 
 	filter := bson.M{"_id": oid}
@@ -105,7 +113,7 @@ func (d *db) Update(ctx context.Context, e employee.Employee) error {
 	return nil
 }
 
-func (d *db) Delete(ctx context.Context, id string) error {
+func (d *employeeStorage) Delete(ctx context.Context, id string) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return fmt.Errorf("failed to convert employee ID to ObjectID. ID=%s", id)
@@ -124,11 +132,4 @@ func (d *db) Delete(ctx context.Context, id string) error {
 	d.logger.Tracef("Deleted %d document", result.DeletedCount)
 
 	return nil
-}
-
-func NewStorage(database *mongo.Database, collection string, logger *logging.Logger) employee.Storage {
-	return &db{
-		collection: database.Collection(collection),
-		logger:     logger,
-	}
 }
