@@ -2,7 +2,7 @@ package v1
 
 import (
 	"CRMka/internal/apperror"
-	"CRMka/internal/controller/http/dto"
+	"CRMka/internal/domain/dto"
 	"CRMka/internal/domain/entity"
 	"CRMka/pkg/logging"
 	"context"
@@ -22,25 +22,19 @@ type Service interface {
 	GetAllEmployees(ctx context.Context) (e []entity.Employee, err error)
 	GetEmployeeByID(ctx context.Context, id string) (entity.Employee, error)
 	UpdateEmployee(ctx context.Context, employee entity.Employee) error
-	DeleteEmployeeByUUID(ctx context.Context, id string) error
+	DeleteEmployeeByID(ctx context.Context, id string) error
 }
 
 type handler struct {
-	name    string
 	logger  *logging.Logger
 	service Service
 }
 
-func NewHandler(l *logging.Logger, s Service) *handler {
+func NewEmployeeHandler(l *logging.Logger, s Service) *handler {
 	return &handler{
-		name:    "employee",
 		logger:  l,
 		service: s,
 	}
-}
-
-func (h *handler) GetName() string {
-	return h.name
 }
 
 func (h *handler) Register(router *httprouter.Router) {

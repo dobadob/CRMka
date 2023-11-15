@@ -2,7 +2,7 @@ package mongodb
 
 import (
 	"CRMka/internal/apperror"
-	"CRMka/internal/controller/http/dto"
+	"CRMka/internal/domain/dto"
 	"CRMka/internal/domain/entity"
 	"CRMka/pkg/logging"
 	"context"
@@ -14,14 +14,14 @@ import (
 )
 
 type employeeStorage struct {
-	collection *mongo.Collection
 	logger     *logging.Logger
+	collection *mongo.Collection
 }
 
-func NewStorage(database *mongo.Database, collection string, logger *logging.Logger) *employeeStorage {
+func NewEmployeeStorage(logger *logging.Logger, database *mongo.Database) *employeeStorage {
 	return &employeeStorage{
-		collection: database.Collection(collection),
 		logger:     logger,
+		collection: database.Collection("employees"),
 	}
 }
 

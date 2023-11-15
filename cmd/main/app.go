@@ -1,11 +1,8 @@
 package main
 
 import (
-	"CRMka/internal/adapters/db/mongodb"
+	"CRMka/internal/composites"
 	"CRMka/internal/config"
-	v1 "CRMka/internal/controller/http/v1"
-	"CRMka/internal/domain/service"
-	mongodb2 "CRMka/pkg/client/mongodb"
 	"CRMka/pkg/logging"
 	"context"
 	"fmt"
@@ -19,30 +16,19 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-type Handler interface {
-	Register(router *httprouter.Router)
-	GetName() string
-}
-
 func main() {
 	logger := logging.GetLogger()
-	logger.Info("create router")
-	router := httprouter.New()
-
 	cfg := config.GetConfig()
 
-	cfgMongo := cfg.MongoDB
-	mongoDBClient, err := mongodb2.NewClient(context.Background(), cfgMongo.Host, cfgMongo.Port, cfgMongo.Username,
-		cfgMongo.Password, cfgMongo.Database, cfgMongo.AuthDB)
-	if err != nil {
-		panic(err)
-	}
+	logger.Info("create mongodb composite")
+	mongoDBComposite := composites.NewMongoDBComposite(context.Background(), cfg)
+	logger.Info("create employee composite")
+	employeeComposite := composites.NewEmployeeComposite(logger, mongoDBComposite)
 
-	employeeStorage := mongodb.NewStorage(mongoDBClient, "employees", logger)
-	employeeService := service.NewService(logger, employeeStorage)
+	logger.Info("create router")
+	router := httprouter.New()
 	logger.Infof("register handler employee handler")
-	employeeHandler := v1.NewHandler(logger, employeeService)
-	employeeHandler.Register(router)
+	employeeComposite.Handler.Register(router)
 
 	start(logger, router, cfg)
 }
