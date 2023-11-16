@@ -7,6 +7,7 @@ import (
 	"CRMka/pkg/logging"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -62,9 +63,23 @@ func (h *handler) GetAllEmployees(w http.ResponseWriter, r *http.Request) error 
 }
 
 func (h *handler) CreateEmployee(w http.ResponseWriter, r *http.Request) error {
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("this is create employee"))
+	bytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	var newEmployee dto.CreateEmployeeDTO
+	err = json.Unmarshal(bytes, newEmployee)
+	if err != nil {
+		return err
+	}
 
+	id, err := h.service.CreateEmployee(context.Background(), newEmployee)
+	if err != nil {
+		return err
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(id))
 	return nil
 }
 

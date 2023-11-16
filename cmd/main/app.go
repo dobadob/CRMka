@@ -21,7 +21,7 @@ func main() {
 	cfg := config.GetConfig()
 
 	logger.Info("create mongodb composite")
-	mongoDBComposite := composites.NewMongoDBComposite(context.Background(), cfg)
+	mongoDBComposite := composites.NewMongoDBComposite(context.Background(), *cfg)
 	logger.Info("create employee composite")
 	employeeComposite := composites.NewEmployeeComposite(logger, mongoDBComposite)
 
